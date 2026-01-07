@@ -1,5 +1,5 @@
 [build]
-  command = "npm install && npm start"
+  command = "npm install"
   publish = "public"
   functions = "netlify/functions"
 
@@ -8,5 +8,5 @@
 
 [[redirects]]
   from = "/*"
-  to = "/dashboard.html"
+  to = "/.netlify/functions/api"           
   status = 200
