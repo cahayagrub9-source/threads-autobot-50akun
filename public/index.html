@@ -41,7 +41,7 @@
   <div class="container">
     <div class="header">
       <h1>🎯 Threads AutoBot 50 Akun + 2FA.LIVE</h1>
-      <p>PC OFF 24/7 | Live 2FA Codes | Auto Save | JSON Backup | Netlify Ready</p>
+      <p>PC OFF 24/7 | Live 2FA Codes | Auto Save | JSON Backup | FIXED BUG</p>
       
       <div class="stats">
         <div class="stat">
@@ -70,19 +70,19 @@
         <button class="btn btn-success" onclick="document.getElementById('importJson').click()">
           📁 IMPORT JSON
         </button>
-        <button class="btn btn-danger" onclick="exportAllAccounts()">
-          📥 DOWNLOAD ALL
+        <button class="btn btn-danger" onclick="clearAllData()">
+          🗑️ CLEAR ALL
         </button>
       </div>
     </div>
 
-    <!-- ➕ FORM TAMBAH AKUN BARU -->
+    <!-- ➕ FORM TAMBAH AKUN BARU - PRE-FILLED -->
     <div class="add-account-form">
       <h3 style="color: #1f2937; margin-bottom: 15px;">➕ Tambah Akun Baru</h3>
       <div class="add-form-grid">
-        <input id="newUsername" placeholder="Username (@username)" style="padding: 12px; border: 2px solid #e5e7eb; border-radius: 12px;">
-        <input id="newPassword" type="password" placeholder="Password" style="padding: 12px; border: 2px solid #e5e7eb; border-radius: 12px;">
-        <input id="newTotpSecret" placeholder="2FA Secret (JBSWY3DPEHPK3PXP)" style="padding: 12px; border: 2px solid #e5e7eb; border-radius: 12px;">
+        <input id="newUsername" value="Bernice.Paxton24" placeholder="Username (@username)">
+        <input id="newPassword" value="freedom123" type="password" placeholder="Password">
+        <input id="newTotpSecret" value="G76NKKCIXYZNEVG5U653ZZ5ZTHWSKD4" placeholder="2FA Secret">
         <button class="btn btn-primary" onclick="addNewAccount()" style="padding: 12px 24px;">➕ TAMBAH AKUN</button>
       </div>
     </div>
@@ -91,7 +91,6 @@
   </div>
 
   <script>
-    // 🔥 PERFECT SAVE SYSTEM - localStorage + JSON backup
     let accounts = JSON.parse(localStorage.getItem('threadsAccounts') || '[]');
     const API_BASE = '/.netlify/functions/';
     
@@ -104,27 +103,23 @@
     
     async function loadAccounts() {
       try {
-        // Coba Netlify Functions dulu (opsional)
         const res = await fetch(`${API_BASE}accounts`);
-        if (res.ok) {
-          accounts = await res.json();
-        }
+        if (res.ok) accounts = await res.json();
       } catch (e) {
-        console.log('Netlify functions unavailable, using localStorage');
+        console.log('Using localStorage only');
       }
-      
-      // Selalu backup ke localStorage
       localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
       updateStats();
       renderAccounts();
     }
     
+    // 🔥 FIXED RENDER - Pakai index parameter
     function renderAccounts() {
-      document.getElementById('accountsGrid').innerHTML = accounts.map(account => `
+      document.getElementById('accountsGrid').innerHTML = accounts.map((account, index) => `
         <div class="account-card">
           <div class="account-header">
             <div>
-              <h3 style="margin: 0; color: #1f2937;">Akun #${account.id || accounts.indexOf(account) + 1}</h3>
+              <h3 style="margin: 0; color: #1f2937;">Akun #${account.id || index + 1}</h3>
               <div style="color: #6b7280; font-size: 15px;">${account.username || 'New account'}</div>
             </div>
             <span class="status-badge status-${account.status || 'waiting'}">
@@ -135,15 +130,14 @@
           <div class="form-row">
             <div class="form-group">
               <label>📝 Caption:</label>
-              <textarea onchange="updateAccount(${accounts.indexOf(account)}, 'caption', this.value)">
+              <textarea onchange="updateAccount(${index}, 'caption', this.value)">
                 ${(account.caption || '').replace(/"/g, '&quot;')}
               </textarea>
             </div>
-            
             <div class="form-group">
               <label>🖼️ Foto:</label>
               <input value="${(account.image || '').replace(/"/g, '&quot;')}" 
-                     onchange="updateAccount(${accounts.indexOf(account)}, 'image', this.value)" 
+                     onchange="updateAccount(${index}, 'image', this.value)" 
                      placeholder="images/akun1.jpg">
               ${account.image ? `
                 <img src="${account.image}" style="max-width:80px;max-height:80px;border-radius:8px;margin-top:8px;" 
@@ -154,49 +148,45 @@
           
           <div class="form-row">
             <div class="form-group">
-              <label>⏰ Schedule (YYYY-MM-DD HH:MM):</label>
+              <label>⏰ Schedule:</label>
               <input type="datetime-local" value="${account.schedule ? account.schedule.slice(0,16) : ''}" 
-                     onchange="updateAccount(${accounts.indexOf(account)}, 'schedule', this.value + ':00')">
+                     onchange="updateAccount(${index}, 'schedule', this.value + ':00')">
             </div>
-            
             <div class="form-group">
               <label>🔐 Password:</label>
               <input type="password" value="${(account.password || '').replace(/"/g, '&quot;')}" 
-                     onchange="updateAccount(${accounts.indexOf(account)}, 'password', this.value)">
+                     onchange="updateAccount(${index}, 'password', this.value)">
             </div>
           </div>
           
           <div class="form-group">
-            <label>🔑 2FA Secret (2fa.live):</label>
-            <input id="totp-${accounts.indexOf(account)}" value="${(account.totp_secret || '').replace(/"/g, '&quot;')}" 
-                   onchange="updateAccount(${accounts.indexOf(account)}, 'totp_secret', this.value)" 
-                   placeholder="JBSWY3DPEHPK3PXP">
-            <button class="btn btn-success" onclick="getLive2FACode(${accounts.indexOf(account)})" 
-                    style="margin-top: 10px;">🔄 Get Live Code</button>
-            <div id="code-${accounts.indexOf(account)}" class="totp-code" style="display: none;"></div>
+            <label>🔑 2FA Secret:</label>
+            <input id="totp-${index}" value="${(account.totp_secret || '').replace(/"/g, '&quot;')}" 
+                   onchange="updateAccount(${index}, 'totp_secret', this.value)">
+            <button class="btn btn-success" onclick="getLive2FACode(${index})" style="margin-top: 10px;">
+              🔄 Get Live Code
+            </button>
+            <div id="code-${index}" class="totp-code" style="display: none;"></div>
           </div>
           
           <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <button class="btn btn-danger" onclick="resetAccount(${accounts.indexOf(account)})">🔄 RESET</button>
-            <button class="btn btn-primary" onclick="testPost(${accounts.indexOf(account)})">🧪 TEST POST</button>
+            <button class="btn btn-danger" onclick="resetAccount(${index})">🔄 RESET</button>
+            <button class="btn btn-primary" onclick="testPost(${index})">🧪 TEST POST</button>
           </div>
           
           ${account.status === 'error' ? `
             <div style="background:#fee2e2;color:#dc2626;padding:15px;border-radius:12px;margin-top:20px;">
               ❌ ${account.lastError || 'Unknown error'}
-            </div>
-          ` : ''}
+            </div>` : ''}
           ${account.postedAt ? `
             <div style="background:#d1fae5;color:#059669;padding:15px;border-radius:12px;margin-top:15px;">
               ✅ Posted: ${new Date(account.postedAt).toLocaleString('id-ID')}
-            </div>
-          ` : ''}
+            </div>` : ''}
         </div>
       `).join('') || `
         <div style="text-align:center;padding:50px;color:#6b7280;">
           <h2>📭 Belum ada akun</h2>
-          <p>Gunakan form "Tambah Akun Baru" di atas untuk memulai!</p>
-          <button class="btn btn-primary" onclick="addNewAccount()" style="margin-top:20px;">➕ Tambah Akun Pertama</button>
+          <p>Akun Bernice.Paxton24 sudah siap di form atas! Klik ➕ TAMBAH AKUN</p>
         </div>
       `;
     }
@@ -208,11 +198,8 @@
       }
     }
     
-    // 🔥 PERFECT SAVE SYSTEM
     async function saveAll() {
       localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
-      
-      // Auto download backup JSON
       const dataStr = JSON.stringify(accounts, null, 2);
       const dataBlob = new Blob([dataStr], {type: 'application/json'});
       const url = URL.createObjectURL(dataBlob);
@@ -221,33 +208,35 @@
       link.download = `threads-accounts-${new Date().toISOString().slice(0,10)}.json`;
       link.click();
       URL.revokeObjectURL(url);
-      
-      alert(`✅ SAVED SUCCESS!\n📊 ${accounts.length} akun\n💾 localStorage + JSON backup`);
+      alert(`✅ SAVED ${accounts.length} akun!\n💾 localStorage + JSON backup`);
     }
     
-    // 🔥 IMPORT JSON BACKUP
     function importAccounts(event) {
       const file = event.target.files[0];
       if (!file) return;
-      
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
-          const importedAccounts = JSON.parse(e.target.result);
-          accounts = importedAccounts.map((acc, i) => ({ ...acc, id: acc.id || i + 1 }));
+          accounts = JSON.parse(e.target.result);
           localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
           updateStats();
           renderAccounts();
-          alert(`✅ IMPORTED ${accounts.length} akun!`);
-        } catch (error) {
-          alert('❌ File JSON rusak! Gunakan file backup yang benar.');
+          alert(`✅ IMPORT ${accounts.length} akun!`);
+        } catch {
+          alert('❌ JSON rusak!');
         }
       };
       reader.readAsText(file);
     }
     
-    function exportAllAccounts() {
-      saveAll(); // Trigger auto-download
+    function clearAllData() {
+      if (confirm('Hapus SEMUA akun?')) {
+        accounts = [];
+        localStorage.removeItem('threadsAccounts');
+        updateStats();
+        renderAccounts();
+        alert('🗑️ Semua data dihapus!');
+      }
     }
     
     async function addNewAccount() {
@@ -256,7 +245,7 @@
       const totp = document.getElementById('newTotpSecret').value.trim();
       
       if (!username || !password) {
-        alert('❌ Username & Password WAJIB diisi!');
+        alert('❌ Username & Password WAJIB!');
         return;
       }
       
@@ -265,9 +254,9 @@
         username,
         password,
         totp_secret: totp,
-        caption: '',
+        caption: `Halo Threads dari ${username}! 🚀 #autobot`,
         image: '',
-        schedule: '',
+        schedule: new Date(Date.now() + 9*60*60*1000).toISOString().slice(0,19), // 9AM today
         status: 'waiting',
         lastError: ''
       };
@@ -282,57 +271,37 @@
       document.getElementById('newPassword').value = '';
       document.getElementById('newTotpSecret').value = '';
       
-      alert(`✅ Akun #${newAccount.id} ditambahkan!`);
+      alert(`✅ Akun #${newAccount.id} ${username} SIAP POST 09:00!`);
     }
     
     async function getLive2FACode(index) {
       const secret = document.getElementById(`totp-${index}`).value;
-      if (!secret) {
-        alert('❌ Masukkan 2FA secret dulu!');
-        return;
-      }
+      if (!secret) return alert('❌ 2FA secret kosong!');
       
       try {
-        const res = await fetch(`https://2fa.live/api/${secret}`);
+        const res = await fetch(`https://2fa.live/api/${secret.replace(/\s/g, '')}`);
         const data = await res.json();
         const codeEl = document.getElementById(`code-${index}`);
-        codeEl.textContent = `🔑 Current 2FA: ${data.token}`;
+        codeEl.textContent = `🔑 ${data.token}`;
         codeEl.style.display = 'block';
-        
-        // Auto copy to clipboard
         navigator.clipboard.writeText(data.token);
-        console.log('2FA code copied to clipboard:', data.token);
-      } catch (error) {
-        alert('❌ Error 2FA.live. Cek secret key!');
+      } catch {
+        alert('❌ Error 2FA. Pastikan secret benar!');
       }
     }
     
     async function resetAccount(index) {
-      if (confirm(`Reset Akun #${accounts[index]?.id || index + 1}?`)) {
-        if (accounts[index]) {
-          accounts[index].status = 'waiting';
-          accounts[index].lastError = '';
-          accounts[index].postedAt = '';
-          localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
-          renderAccounts();
-          alert('✅ Akun direset!');
-        }
+      if (confirm(`Reset Akun #${accounts[index]?.id}?`)) {
+        accounts[index].status = 'waiting';
+        accounts[index].lastError = '';
+        accounts[index].postedAt = '';
+        localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
+        renderAccounts();
       }
     }
     
-    async function testPost(index) {
-      alert(`🧪 TEST POST Akun #${accounts[index]?.id || index + 1}\n\nFitur ini akan aktif setelah cron job setup di Netlify Functions!`);
-    }
-    
-    // Auto start + refresh
     loadAccounts();
-    setInterval(loadAccounts, 10000); // 10 detik refresh
-    
-    // Welcome message
-    console.log('🚀 Threads AutoBot 50 Akun READY!');
-    console.log('📊 Akun:', accounts.length);
-    console.log('💾 Save: localStorage + JSON backup');
-    console.log('🌐 2FA: 2fa.live API');
+    setInterval(loadAccounts, 10000);
   </script>
 </body>
 </html>
