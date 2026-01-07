@@ -298,45 +298,33 @@
       }
     }
     
-    // 🔥 REAL TEST POST ke Netlify Functions
-    async function testPost(index) {
-      const account = accounts[index];
-      if (!account) return alert('❌ Akun tidak ditemukan!');
-      
-      if (!confirm(`🧪 Test post ${account.username}?\nCaption: ${account.caption.substring(0,50)}...`)) return;
-      
-      try {
-        console.log(`🧪 Testing ${account.username}...`);
-        
-        const res = await fetch(`${API_BASE}post/${account.id}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(account)
-        });
-        
-        const data = await res.json();
-        
-        if (res.ok && data.success) {
-          accounts[index].status = 'posted';
-          accounts[index].postedAt = new Date().toISOString();
-          localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
-          renderAccounts();
-          alert(`✅ TEST POST SUCCESS!\n${account.username}\n2FA: ${data.totpData?.token || 'OK'}\nPosted: ${new Date().toLocaleString('id-ID')}`);
-        } else {
-          accounts[index].status = 'error';
-          accounts[index].lastError = data.error || 'Unknown error';
-          localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
-          renderAccounts();
-          alert(`❌ Test failed: ${data.error || 'Netlify post.js belum deploy'}`);
-        }
-      } catch (error) {
-        accounts[index].status = 'error';
-        accounts[index].lastError = 'Netlify function error. Buat post.js dulu!';
-        localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
-        renderAccounts();
-        alert('❌ Netlify post.js belum ada. Buat file netlify/functions/post.js!');
-      }
+ async function testPost(index) {
+  const account = accounts[index];
+  if (!confirm(`🧪 REAL POST ${account.username}?`)) return;
+
+  try {
+    const response = await fetch('/.netlify/functions/post', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify([account])
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      accounts[index].status = 'posted';
+      accounts[index].postedAt = new Date().toISOString();
+      localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
+      renderAccounts();
+      alert(`✅ REAL POST SUCCESS!\n${account.username}\n${data.message}`);
+    } else {
+      alert(`❌ ${data.error}`);
     }
+  } catch (error) {
+    alert('❌ Netlify function error. Deploy ulang!');
+  }
+}
+
     
     // INIT
     loadAccounts();
@@ -346,3 +334,4 @@
   </script>
 </body>
 </html>
+
