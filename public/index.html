@@ -41,7 +41,7 @@
   <div class="container">
     <div class="header">
       <h1>🎯 Threads AutoBot 50 Akun + 2FA.LIVE</h1>
-      <p>PC OFF 24/7 | Live 2FA Codes | Auto Save | JSON Backup | FIXED BUG</p>
+      <p>PC OFF 24/7 | Test Post Working | JSON Backup | Netlify Functions Ready</p>
       
       <div class="stats">
         <div class="stat">
@@ -76,13 +76,13 @@
       </div>
     </div>
 
-    <!-- ➕ FORM TAMBAH AKUN BARU - PRE-FILLED -->
+    <!-- ➕ FORM TAMBAH AKUN BARU -->
     <div class="add-account-form">
       <h3 style="color: #1f2937; margin-bottom: 15px;">➕ Tambah Akun Baru</h3>
       <div class="add-form-grid">
-        <input id="newUsername" value="Bernice.Paxton24" placeholder="Username (@username)">
-        <input id="newPassword" value="freedom123" type="password" placeholder="Password">
-        <input id="newTotpSecret" value="G76NKKCIXYZNEVG5U653ZZ5ZTHWSKD4" placeholder="2FA Secret">
+        <input id="newUsername" placeholder="Username (@username)" style="padding: 12px; border: 2px solid #e5e7eb; border-radius: 12px;">
+        <input id="newPassword" type="password" placeholder="Password" style="padding: 12px; border: 2px solid #e5e7eb; border-radius: 12px;">
+        <input id="newTotpSecret" placeholder="2FA Secret (G76NKKCIXYZNEVG5U653ZZ5ZTHWSKD4)" style="padding: 12px; border: 2px solid #e5e7eb; border-radius: 12px;">
         <button class="btn btn-primary" onclick="addNewAccount()" style="padding: 12px 24px;">➕ TAMBAH AKUN</button>
       </div>
     </div>
@@ -91,30 +91,23 @@
   </div>
 
   <script>
-  let accounts = JSON.parse(localStorage.getItem('threadsAccounts') || '[]');
-  const API_BASE = '/.netlify/functions/';
-  let renderTimeout = null;
-  
-  function updateStats() {
-    document.getElementById('totalAccounts').textContent = accounts.length;
-    document.getElementById('postedAccounts').textContent = accounts.filter(a => a.status === 'posted').length;
-    document.getElementById('waitingAccounts').textContent = accounts.filter(a => a.status === 'waiting').length;
-    document.getElementById('errorAccounts').textContent = accounts.filter(a => a.status === 'error').length;
-  }
-  
-  // 🔥 FIXED - NO AUTO OVERWRITE
-  async function loadAccounts() {
-    // TIDAK coba Netlify lagi kecuali manual refresh
-    localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
-    updateStats();
-    renderAccounts();
-  }
-  
-  function renderAccounts() {
-    // Cancel previous render
-    if (renderTimeout) cancelAnimationFrame(renderTimeout);
+    let accounts = JSON.parse(localStorage.getItem('threadsAccounts') || '[]');
+    const API_BASE = '/.netlify/functions/';
     
-    renderTimeout = requestAnimationFrame(() => {
+    function updateStats() {
+      document.getElementById('totalAccounts').textContent = accounts.length;
+      document.getElementById('postedAccounts').textContent = accounts.filter(a => a.status === 'posted').length;
+      document.getElementById('waitingAccounts').textContent = accounts.filter(a => a.status === 'waiting').length;
+      document.getElementById('errorAccounts').textContent = accounts.filter(a => a.status === 'error').length;
+    }
+    
+    function loadAccounts() {
+      localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
+      updateStats();
+      renderAccounts();
+    }
+    
+    function renderAccounts() {
       document.getElementById('accountsGrid').innerHTML = accounts.map((account, index) => `
         <div class="account-card" data-account-index="${index}">
           <div class="account-header">
@@ -139,12 +132,16 @@
               <input value="${(account.image || '').replace(/"/g, '&quot;')}" 
                      oninput="updateAccount(${index}, 'image', this.value)" 
                      placeholder="images/akun1.jpg">
+              ${account.image ? `
+                <img src="${account.image}" style="max-width:80px;max-height:80px;border-radius:8px;margin-top:8px;" 
+                     onerror="this.style.display='none'">
+              ` : ''}
             </div>
           </div>
           
           <div class="form-row">
             <div class="form-group">
-              <label>⏰ Schedule:</label>
+              <label>⏰ Schedule (YYYY-MM-DDTHH:MM):</label>
               <input type="datetime-local" value="${account.schedule ? account.schedule.slice(0,16) : ''}" 
                      oninput="updateAccount(${index}, 'schedule', this.value + ':00')">
             </div>
@@ -159,85 +156,193 @@
             <label>🔑 2FA Secret:</label>
             <input id="totp-${index}" value="${(account.totp_secret || '').replace(/"/g, '&quot;')}" 
                    oninput="updateAccount(${index}, 'totp_secret', this.value)">
-            <button class="btn btn-success" onclick="getLive2FACode(${index})">🔄 Get Live Code</button>
+            <button class="btn btn-success" onclick="getLive2FACode(${index})" style="margin-top: 10px;">
+              🔄 Get Live Code
+            </button>
             <div id="code-${index}" class="totp-code" style="display: none;"></div>
           </div>
           
           <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 15px;">
             <button class="btn btn-danger" onclick="resetAccount(${index})">🔄 RESET</button>
-            <button class="btn btn-primary" onclick="testPost(${index})">🧪 TEST</button>
+            <button class="btn btn-primary" onclick="testPost(${index})">🧪 TEST POST</button>
           </div>
+          
+          ${account.status === 'error' ? `
+            <div style="background:#fee2e2;color:#dc2626;padding:15px;border-radius:12px;margin-top:20px;">
+              ❌ ${account.lastError || 'Unknown error'}
+            </div>
+          ` : ''}
+          ${account.postedAt ? `
+            <div style="background:#d1fae5;color:#059669;padding:15px;border-radius:12px;margin-top:15px;">
+              ✅ Posted: ${new Date(account.postedAt).toLocaleString('id-ID')}
+            </div>
+          ` : ''}
         </div>
       `).join('') || `
         <div style="text-align:center;padding:50px;color:#6b7280;">
           <h2>📭 Belum ada akun</h2>
-          <p>Klik ➕ TAMBAH AKUN di atas!</p>
+          <p>Isi form di atas → Tambah Akun Bernice.Paxton24!</p>
+          <button class="btn btn-primary" onclick="addNewAccount()" style="margin-top:20px;">➕ Tambah Akun</button>
         </div>
       `;
-    });
-  }
-  
-  function updateAccount(index, field, value) {
-    if (accounts[index]) {
-      accounts[index][field] = value;
+    }
+    
+    function updateAccount(index, field, value) {
+      if (accounts[index]) {
+        accounts[index][field] = value;
+        localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
+        updateStats();
+      }
+    }
+    
+    async function saveAll() {
+      localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
+      const dataStr = JSON.stringify(accounts, null, 2);
+      const dataBlob = new Blob([dataStr], {type: 'application/json'});
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `threads-accounts-${new Date().toISOString().slice(0,10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      alert(`✅ SAVED ${accounts.length} akun!\n💾 localStorage + JSON backup`);
+    }
+    
+    function importAccounts(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          accounts = JSON.parse(e.target.result);
+          localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
+          updateStats();
+          renderAccounts();
+          alert(`✅ IMPORTED ${accounts.length} akun!`);
+        } catch {
+          alert('❌ File JSON rusak!');
+        }
+      };
+      reader.readAsText(file);
+    }
+    
+    function clearAllData() {
+      if (confirm('Hapus SEMUA akun dan data?')) {
+        accounts = [];
+        localStorage.removeItem('threadsAccounts');
+        updateStats();
+        renderAccounts();
+        alert('🗑️ Semua data dihapus!');
+      }
+    }
+    
+    async function addNewAccount() {
+      const username = document.getElementById('newUsername').value.trim();
+      const password = document.getElementById('newPassword').value.trim();
+      const totp = document.getElementById('newTotpSecret').value.trim();
+      
+      if (!username || !password) {
+        alert('❌ Username & Password WAJIB diisi!');
+        return;
+      }
+      
+      const newAccount = {
+        id: accounts.length ? Math.max(...accounts.map(a => a.id || 0)) + 1 : 1,
+        username,
+        password,
+        totp_secret: totp.replace(/\s/g, ''),
+        caption: `Halo Threads dari ${username}! 🚀 #autobot #threads`,
+        image: '',
+        schedule: new Date(Date.now() + 9*60*60*1000).toISOString().slice(0,19), // 09:00 WIB
+        status: 'waiting',
+        lastError: ''
+      };
+      
+      accounts.push(newAccount);
       localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
       updateStats();
-    }
-  }
-  
-  async function saveAll() {
-    localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
-    const dataStr = JSON.stringify(accounts, null, 2);
-    const dataBlob = new Blob([dataStr],{type:'application/json'});
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `threads-accounts-${new Date().toISOString().slice(0,10)}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-    alert(`✅ SAVED ${accounts.length} akun PERMANENT!`);
-  }
-  
-  async function addNewAccount() {
-    const username = document.getElementById('newUsername').value.trim();
-    const password = document.getElementById('newPassword').value.trim();
-    const totp = document.getElementById('newTotpSecret').value.trim();
-    
-    if (!username || !password) {
-      alert('❌ Username & Password WAJIB!');
-      return;
+      renderAccounts();
+      
+      document.getElementById('newUsername').value = '';
+      document.getElementById('newPassword').value = '';
+      document.getElementById('newTotpSecret').value = '';
+      
+      alert(`✅ Akun #${newAccount.id} ${username} SIAP POST 09:00!`);
     }
     
-    const newAccount = {
-      id: accounts.length ? Math.max(...accounts.map(a => a.id || 0)) + 1 : 1,
-      username,
-      password,
-      totp_secret: totp.replace(/\s/g, ''),
-      caption: `Halo Threads dari ${username}! 🚀 #autobot`,
-      image: '',
-      schedule: new Date(Date.now() + 9*60*60*1000).toISOString().slice(0,19),
-      status: 'waiting',
-      lastError: ''
-    };
+    async function getLive2FACode(index) {
+      const secret = document.getElementById(`totp-${index}`).value;
+      if (!secret) return alert('❌ Masukkan 2FA secret dulu!');
+      
+      try {
+        const res = await fetch(`https://2fa.live/api/${secret.replace(/\s/g, '')}`);
+        const data = await res.json();
+        const codeEl = document.getElementById(`code-${index}`);
+        codeEl.textContent = `🔑 Current 2FA: ${data.token}`;
+        codeEl.style.display = 'block';
+        navigator.clipboard.writeText(data.token);
+        console.log('✅ 2FA copied:', data.token);
+      } catch {
+        alert('❌ Error 2FA.live. Cek secret key!');
+      }
+    }
     
-    accounts.push(newAccount);
-    localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
-    updateStats();
-    renderAccounts();
+    async function resetAccount(index) {
+      if (confirm(`Reset Akun #${accounts[index]?.id || index + 1}?`)) {
+        accounts[index].status = 'waiting';
+        accounts[index].lastError = '';
+        accounts[index].postedAt = '';
+        localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
+        renderAccounts();
+        alert('✅ Akun direset ke waiting!');
+      }
+    }
     
-    document.getElementById('newUsername').value = '';
-    document.getElementById('newPassword').value = '';
-    document.getElementById('newTotpSecret').value = '';
+    // 🔥 REAL TEST POST ke Netlify Functions
+    async function testPost(index) {
+      const account = accounts[index];
+      if (!account) return alert('❌ Akun tidak ditemukan!');
+      
+      if (!confirm(`🧪 Test post ${account.username}?\nCaption: ${account.caption.substring(0,50)}...`)) return;
+      
+      try {
+        console.log(`🧪 Testing ${account.username}...`);
+        
+        const res = await fetch(`${API_BASE}post/${account.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(account)
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok && data.success) {
+          accounts[index].status = 'posted';
+          accounts[index].postedAt = new Date().toISOString();
+          localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
+          renderAccounts();
+          alert(`✅ TEST POST SUCCESS!\n${account.username}\n2FA: ${data.totpData?.token || 'OK'}\nPosted: ${new Date().toLocaleString('id-ID')}`);
+        } else {
+          accounts[index].status = 'error';
+          accounts[index].lastError = data.error || 'Unknown error';
+          localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
+          renderAccounts();
+          alert(`❌ Test failed: ${data.error || 'Netlify post.js belum deploy'}`);
+        }
+      } catch (error) {
+        accounts[index].status = 'error';
+        accounts[index].lastError = 'Netlify function error. Buat post.js dulu!';
+        localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
+        renderAccounts();
+        alert('❌ Netlify post.js belum ada. Buat file netlify/functions/post.js!');
+      }
+    }
     
-    alert(`✅ Akun #${newAccount.id} ${username} SIAP FOREVER! 🎉`);
-  }
-  
-  // Start ONCE only
-  loadAccounts();
-  
-  console.log('🚀 Threads AutoBot FIXED - NO MORE AUTO-REFRESH!');
-  console.log('💾 Akun permanen di localStorage');
-</script>
+    // INIT
+    loadAccounts();
+    console.log('🚀 Threads AutoBot FULL VERSION READY!');
+    console.log('✅ Test post = netlify/functions/post.js');
+    console.log('💾 Data = localStorage permanent');
+  </script>
 </body>
 </html>
-
