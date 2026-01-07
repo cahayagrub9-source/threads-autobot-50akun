@@ -91,32 +91,32 @@
   </div>
 
   <script>
-    let accounts = JSON.parse(localStorage.getItem('threadsAccounts') || '[]');
-    const API_BASE = '/.netlify/functions/';
+  let accounts = JSON.parse(localStorage.getItem('threadsAccounts') || '[]');
+  const API_BASE = '/.netlify/functions/';
+  let renderTimeout = null;
+  
+  function updateStats() {
+    document.getElementById('totalAccounts').textContent = accounts.length;
+    document.getElementById('postedAccounts').textContent = accounts.filter(a => a.status === 'posted').length;
+    document.getElementById('waitingAccounts').textContent = accounts.filter(a => a.status === 'waiting').length;
+    document.getElementById('errorAccounts').textContent = accounts.filter(a => a.status === 'error').length;
+  }
+  
+  // 🔥 FIXED - NO AUTO OVERWRITE
+  async function loadAccounts() {
+    // TIDAK coba Netlify lagi kecuali manual refresh
+    localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
+    updateStats();
+    renderAccounts();
+  }
+  
+  function renderAccounts() {
+    // Cancel previous render
+    if (renderTimeout) cancelAnimationFrame(renderTimeout);
     
-    function updateStats() {
-      document.getElementById('totalAccounts').textContent = accounts.length;
-      document.getElementById('postedAccounts').textContent = accounts.filter(a => a.status === 'posted').length;
-      document.getElementById('waitingAccounts').textContent = accounts.filter(a => a.status === 'waiting').length;
-      document.getElementById('errorAccounts').textContent = accounts.filter(a => a.status === 'error').length;
-    }
-    
-    async function loadAccounts() {
-      try {
-        const res = await fetch(`${API_BASE}accounts`);
-        if (res.ok) accounts = await res.json();
-      } catch (e) {
-        console.log('Using localStorage only');
-      }
-      localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
-      updateStats();
-      renderAccounts();
-    }
-    
-    // 🔥 FIXED RENDER - Pakai index parameter
-    function renderAccounts() {
+    renderTimeout = requestAnimationFrame(() => {
       document.getElementById('accountsGrid').innerHTML = accounts.map((account, index) => `
-        <div class="account-card">
+        <div class="account-card" data-account-index="${index}">
           <div class="account-header">
             <div>
               <h3 style="margin: 0; color: #1f2937;">Akun #${account.id || index + 1}</h3>
@@ -130,19 +130,15 @@
           <div class="form-row">
             <div class="form-group">
               <label>📝 Caption:</label>
-              <textarea onchange="updateAccount(${index}, 'caption', this.value)">
+              <textarea oninput="updateAccount(${index}, 'caption', this.value)">
                 ${(account.caption || '').replace(/"/g, '&quot;')}
               </textarea>
             </div>
             <div class="form-group">
               <label>🖼️ Foto:</label>
               <input value="${(account.image || '').replace(/"/g, '&quot;')}" 
-                     onchange="updateAccount(${index}, 'image', this.value)" 
+                     oninput="updateAccount(${index}, 'image', this.value)" 
                      placeholder="images/akun1.jpg">
-              ${account.image ? `
-                <img src="${account.image}" style="max-width:80px;max-height:80px;border-radius:8px;margin-top:8px;" 
-                     onerror="this.style.display='none'">
-              ` : ''}
             </div>
           </div>
           
@@ -150,158 +146,98 @@
             <div class="form-group">
               <label>⏰ Schedule:</label>
               <input type="datetime-local" value="${account.schedule ? account.schedule.slice(0,16) : ''}" 
-                     onchange="updateAccount(${index}, 'schedule', this.value + ':00')">
+                     oninput="updateAccount(${index}, 'schedule', this.value + ':00')">
             </div>
             <div class="form-group">
               <label>🔐 Password:</label>
               <input type="password" value="${(account.password || '').replace(/"/g, '&quot;')}" 
-                     onchange="updateAccount(${index}, 'password', this.value)">
+                     oninput="updateAccount(${index}, 'password', this.value)">
             </div>
           </div>
           
           <div class="form-group">
             <label>🔑 2FA Secret:</label>
             <input id="totp-${index}" value="${(account.totp_secret || '').replace(/"/g, '&quot;')}" 
-                   onchange="updateAccount(${index}, 'totp_secret', this.value)">
-            <button class="btn btn-success" onclick="getLive2FACode(${index})" style="margin-top: 10px;">
-              🔄 Get Live Code
-            </button>
+                   oninput="updateAccount(${index}, 'totp_secret', this.value)">
+            <button class="btn btn-success" onclick="getLive2FACode(${index})">🔄 Get Live Code</button>
             <div id="code-${index}" class="totp-code" style="display: none;"></div>
           </div>
           
-          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 15px;">
             <button class="btn btn-danger" onclick="resetAccount(${index})">🔄 RESET</button>
-            <button class="btn btn-primary" onclick="testPost(${index})">🧪 TEST POST</button>
+            <button class="btn btn-primary" onclick="testPost(${index})">🧪 TEST</button>
           </div>
-          
-          ${account.status === 'error' ? `
-            <div style="background:#fee2e2;color:#dc2626;padding:15px;border-radius:12px;margin-top:20px;">
-              ❌ ${account.lastError || 'Unknown error'}
-            </div>` : ''}
-          ${account.postedAt ? `
-            <div style="background:#d1fae5;color:#059669;padding:15px;border-radius:12px;margin-top:15px;">
-              ✅ Posted: ${new Date(account.postedAt).toLocaleString('id-ID')}
-            </div>` : ''}
         </div>
       `).join('') || `
         <div style="text-align:center;padding:50px;color:#6b7280;">
           <h2>📭 Belum ada akun</h2>
-          <p>Akun Bernice.Paxton24 sudah siap di form atas! Klik ➕ TAMBAH AKUN</p>
+          <p>Klik ➕ TAMBAH AKUN di atas!</p>
         </div>
       `;
-    }
-    
-    function updateAccount(index, field, value) {
-      if (accounts[index]) {
-        accounts[index][field] = value;
-        localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
-      }
-    }
-    
-    async function saveAll() {
-      localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
-      const dataStr = JSON.stringify(accounts, null, 2);
-      const dataBlob = new Blob([dataStr], {type: 'application/json'});
-      const url = URL.createObjectURL(dataBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `threads-accounts-${new Date().toISOString().slice(0,10)}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
-      alert(`✅ SAVED ${accounts.length} akun!\n💾 localStorage + JSON backup`);
-    }
-    
-    function importAccounts(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          accounts = JSON.parse(e.target.result);
-          localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
-          updateStats();
-          renderAccounts();
-          alert(`✅ IMPORT ${accounts.length} akun!`);
-        } catch {
-          alert('❌ JSON rusak!');
-        }
-      };
-      reader.readAsText(file);
-    }
-    
-    function clearAllData() {
-      if (confirm('Hapus SEMUA akun?')) {
-        accounts = [];
-        localStorage.removeItem('threadsAccounts');
-        updateStats();
-        renderAccounts();
-        alert('🗑️ Semua data dihapus!');
-      }
-    }
-    
-    async function addNewAccount() {
-      const username = document.getElementById('newUsername').value.trim();
-      const password = document.getElementById('newPassword').value.trim();
-      const totp = document.getElementById('newTotpSecret').value.trim();
-      
-      if (!username || !password) {
-        alert('❌ Username & Password WAJIB!');
-        return;
-      }
-      
-      const newAccount = {
-        id: accounts.length ? Math.max(...accounts.map(a => a.id || 0)) + 1 : 1,
-        username,
-        password,
-        totp_secret: totp,
-        caption: `Halo Threads dari ${username}! 🚀 #autobot`,
-        image: '',
-        schedule: new Date(Date.now() + 9*60*60*1000).toISOString().slice(0,19), // 9AM today
-        status: 'waiting',
-        lastError: ''
-      };
-      
-      accounts.push(newAccount);
+    });
+  }
+  
+  function updateAccount(index, field, value) {
+    if (accounts[index]) {
+      accounts[index][field] = value;
       localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
       updateStats();
-      renderAccounts();
-      
-      // Clear form
-      document.getElementById('newUsername').value = '';
-      document.getElementById('newPassword').value = '';
-      document.getElementById('newTotpSecret').value = '';
-      
-      alert(`✅ Akun #${newAccount.id} ${username} SIAP POST 09:00!`);
+    }
+  }
+  
+  async function saveAll() {
+    localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
+    const dataStr = JSON.stringify(accounts, null, 2);
+    const dataBlob = new Blob([dataStr],{type:'application/json'});
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `threads-accounts-${new Date().toISOString().slice(0,10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    alert(`✅ SAVED ${accounts.length} akun PERMANENT!`);
+  }
+  
+  async function addNewAccount() {
+    const username = document.getElementById('newUsername').value.trim();
+    const password = document.getElementById('newPassword').value.trim();
+    const totp = document.getElementById('newTotpSecret').value.trim();
+    
+    if (!username || !password) {
+      alert('❌ Username & Password WAJIB!');
+      return;
     }
     
-    async function getLive2FACode(index) {
-      const secret = document.getElementById(`totp-${index}`).value;
-      if (!secret) return alert('❌ 2FA secret kosong!');
-      
-      try {
-        const res = await fetch(`https://2fa.live/api/${secret.replace(/\s/g, '')}`);
-        const data = await res.json();
-        const codeEl = document.getElementById(`code-${index}`);
-        codeEl.textContent = `🔑 ${data.token}`;
-        codeEl.style.display = 'block';
-        navigator.clipboard.writeText(data.token);
-      } catch {
-        alert('❌ Error 2FA. Pastikan secret benar!');
-      }
-    }
+    const newAccount = {
+      id: accounts.length ? Math.max(...accounts.map(a => a.id || 0)) + 1 : 1,
+      username,
+      password,
+      totp_secret: totp.replace(/\s/g, ''),
+      caption: `Halo Threads dari ${username}! 🚀 #autobot`,
+      image: '',
+      schedule: new Date(Date.now() + 9*60*60*1000).toISOString().slice(0,19),
+      status: 'waiting',
+      lastError: ''
+    };
     
-    async function resetAccount(index) {
-      if (confirm(`Reset Akun #${accounts[index]?.id}?`)) {
-        accounts[index].status = 'waiting';
-        accounts[index].lastError = '';
-        accounts[index].postedAt = '';
-        localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
-        renderAccounts();
-      }
-    }
+    accounts.push(newAccount);
+    localStorage.setItem('threadsAccounts', JSON.stringify(accounts));
+    updateStats();
+    renderAccounts();
     
-    loadAccounts();
-    setInterval(loadAccounts, 10000);
-  </script>
+    document.getElementById('newUsername').value = '';
+    document.getElementById('newPassword').value = '';
+    document.getElementById('newTotpSecret').value = '';
+    
+    alert(`✅ Akun #${newAccount.id} ${username} SIAP FOREVER! 🎉`);
+  }
+  
+  // Start ONCE only
+  loadAccounts();
+  
+  console.log('🚀 Threads AutoBot FIXED - NO MORE AUTO-REFRESH!');
+  console.log('💾 Akun permanen di localStorage');
+</script>
 </body>
 </html>
+
