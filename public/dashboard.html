@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Threads AutoBot 50 Akun + 2FA.LIVE Dashboard</title>
+  <meta name="viewport" content="width=device-width">
+  <style>
+    * { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 0; }
+    body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+    .container { max-width: 1400px; margin: 0 auto; }
+    .header { background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); padding: 30px; border-radius: 24px; box-shadow: 0 25px 50px rgba(0,0,0,0.15); margin-bottom: 30px; }
+    .header h1 { font-size: 2.8em; background: linear-gradient(45deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
+    .stat { background: white; padding: 20px; border-radius: 16px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+    .stat-value { font-size: 2.5em; font-weight: bold; }
+    .accounts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(700px, 1fr)); gap: 25px; }
+    .account-card { background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-radius: 20px; padding: 25px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+    .account-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 3px solid #e5e7eb; }
+    .status-badge { padding: 10px 20px; border-radius: 25px; font-weight: bold; font-size: 13px; text-transform: uppercase; }
+    .status-waiting { background: linear-gradient(45deg, #fef3c7, #fed7aa); color: #d97706; }
+    .status-posted { background: linear-gradient(45deg, #d1fae5, #a7f3d0); color: #059669; }
+    .status-error { background: linear-gradient(45deg, #fee2e2, #fecaca); color: #dc2626; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 8px; color: #374151; }
+    input, textarea { width: 100%; padding: 14px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 16px; box-sizing: border-box; transition: all 0.3s; }
+    input:focus, textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+    textarea { resize: vertical; min-height: 100px; font-family: inherit; }
+    .btn { padding: 12px 24px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s; margin-right: 10px; }
+    .btn-primary { background: linear-gradient(45deg, #667eea, #764ba2); color: white; }
+    .btn-danger { background: linear-gradient(45deg, #ef4444, #dc2626); color: white; }
+    .btn-success { background: linear-gradient(45deg, #10b981, #059669); color: white; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 15px 35px rgba(0,0,0,0.2); }
+    .totp-code { background: #10b981; color: white; padding: 10px 20px; border-radius: 8px; font-family: monospace; font-size: 18px; font-weight: bold; margin-top: 5px; }
+    @media (max-width: 768px) { .form-row, .accounts-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎯 Threads AutoBot 50 Akun + 2FA.LIVE</h1>
+      <p>PC OFF 24/7 | Live 2FA Codes | Real-time Edit | Cron Job Auto Post</p>
+      
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value" style="color: #667eea;" id="totalAccounts">0</div>
+          <div>Total Akun</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" style="color: #10b981;" id="postedAccounts">0</div>
+          <div>Posted</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" style="color: #f59e0b;" id="waitingAccounts">0</div>
+          <div>Waiting</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" style="color: #ef4444;" id="errorAccounts">0</div>
+          <div>Error</div>
+        </div>
+      </div>
+      
+      <button class="btn btn-primary" onclick="saveAll()" style="margin-top: 20px;">
+        💾 SAVE ALL CHANGES
+      </button>
+    </div>
+
+    <div class="accounts-grid" id="accountsGrid"></div>
+  </div>
+
+  <script>
+    let accounts = [];
+    
+    async function loadAccounts() {
+      try {
+        const res = await fetch('/api/accounts');
+        accounts = await res.json();
+        
+        // Update stats
+        document.getElementById('totalAccounts').textContent = accounts.length;
+        document.getElementById('postedAccounts').textContent = accounts.filter(a => a.status === 'posted').length;
+        document.getElementById('waitingAccounts').textContent = accounts.filter(a => a.status === 'waiting').length;
+        document.getElementById('errorAccounts').textContent = accounts.filter(a => a.status === 'error').length;
+        
+        renderAccounts();
+      } catch (error) {
+        console.error('Load error:', error);
+      }
+    }
+    
+    function renderAccounts() {
+      document.getElementById('accountsGrid').innerHTML = accounts.map(account => `
+        <div class="account-card">
+          <div class="account-header">
+            <div>
+              <h3 style="margin: 0; color: #1f2937;">Akun #${account.id}</h3>
+              <div style="color: #6b7280; font-size: 15px;">${account.username}</div>
+            </div>
+            <span class="status-badge status-${account.status}">${account.status.toUpperCase()}</span>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>📝 Caption:</label>
+              <textarea onchange="updateAccount(${account.id}, 'caption', this.value)">${account.caption || ''}</textarea>
+            </div>
+            
+            <div class="form-group">
+              <label>🖼️ Foto:</label>
+              <input type="file" accept="image/*" onchange="uploadImage(${account.id}, this.files[0])">
+              <input value="${account.image || ''}" onchange="updateAccount(${account.id}, 'image', this.value)" placeholder="images/akun1.jpg">
+              ${account.image ? `<img src="${account.image}" style="max-width:80px;max-height:80px;border-radius:8px;margin-top:8px;">` : ''}
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>⏰ Schedule:</label>
+              <input type="datetime-local" value="${account.schedule ? account.schedule.slice(0,16) : ''}" onchange="updateAccount(${account.id}, 'schedule', this.value + ':00')">
+            </div>
+            
+            <div class="form-group">
+              <label>🔐 Password:</label>
+              <input type="password" value="${account.password || ''}" onchange="updateAccount(${account.id}, 'password', this.value)">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>🔑 2FA Secret (2fa.live):</label>
+            <input id="totp-${account.id}" value="${account.totp_secret || ''}" onchange="updateAccount(${account.id}, 'totp_secret', this.value)" placeholder="JBSWY3DPEHPK3PXP">
+            <button class="btn btn-success" onclick="getLive2FACode(${account.id})" style="margin-top: 10px;">🔄 Get Live Code</button>
+            <div id="code-${account.id}" class="totp-code" style="display: none;"></div>
+          </div>
+          
+          <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <button class="btn btn-danger" onclick="resetAccount(${account.id})">🔄 RESET</button>
+            <button class="btn btn-primary" onclick="testPost(${account.id})">🧪 TEST POST</button>
+          </div>
+          
+          ${account.status === 'error' ? `<div style="background:#fee2e2;color:#dc2626;padding:15px;border-radius:12px;margin-top:20px;">❌ ${account.lastError}</div>` : ''}
+          ${account.postedAt ? `<div style="background:#d1fae5;color:#059669;padding:15px;border-radius:12px;margin-top:15px;">✅ Posted: ${new Date(account.postedAt).toLocaleString('id-ID')}</div>` : ''}
+        </div>
+      `).join('');
+    }
+    
+    async function getLive2FACode(id) {
+      const secret = document.getElementById(`totp-${id}`).value;
+      if (!secret) return alert('Masukkan 2FA secret dulu!');
+      
+      try {
+        const res = await fetch(`https://2fa.live/api/${secret}`);
+        const data = await res.json();
+        const codeEl = document.getElementById(`code-${id}`);
+        codeEl.textContent = `Current 2FA: ${data.token}`;
+        codeEl.style.display = 'block';
+      } catch {
+        alert('Error fetching 2FA code');
+      }
+    }
+    
+    async function updateAccount(id, field, value) {
+      const account = accounts.find(a => a.id === id);
+      if (account) account[field] = value;
+      await saveAll();
+    }
+    
+    async function saveAll() {
+      await fetch('/api/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(accounts)
+      });
+    }
+    
+    async function resetAccount(id) {
+      if (confirm('Reset post status?')) {
+        await fetch(`/api/reset/${id}`, { method: 'POST' });
+        loadAccounts();
+      }
+    }
+    
+    loadAccounts();
+    setInterval(loadAccounts, 5000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+[
+  {
+    "id": 1,
+    "username": "akun1@gmail.com",
+    "password": "password123",
+    "totp_secret": "JBSWY3DPEHPK3PXP",
+    "caption": "🌟 FLASH SALE 70% OFF semua produk! 24 JAM SAJA! #PromoJanuari2026 #DiskonGila",
+    "image": "images/akun1.jpg",
+    "schedule": "2026-01-08T09:00:00",
+    "posted": false,
+    "status": "waiting"
+  },
+  {
+    "id": 2,
+    "username": "akun2@gmail.com",
+    "password": "password456",
+    "totp_secret": "HKDI4QWMZRXEOJ5G",
+    "caption": "🔥 SNEAKERS PREMIUM X EDITION! Stok terbatas 50 pcs! #SneakersMurah #LimitedStock",
+    "image": "images/akun2.jpg",
+    "schedule": "2026-01-08T09:03:00",
+    "posted": false,
+    "status": "waiting"
+  },
+  {
+    "id": 3,
+    "username": "akun3@gmail.com", 
+    "password": "password789",
+    "totp_secret": "PQ7V2B3N6Y8T4R5U",
+    "caption": "💎 PERHIASAN EMAS 22K ASLI! Cek DM untuk harga spesial! #Jewelry #EmasAsli",
+    "image": "images/akun3.jpg",
+    "schedule": "2026-01-08T09:06:00",
+    "posted": false,
+    "status": "waiting"
+  }
+  // ... copy pattern sampai id 50
+]
